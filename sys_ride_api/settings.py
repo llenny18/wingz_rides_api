@@ -41,10 +41,6 @@ SECRET_KEY = config('SECRET_KEY')
 DEBUG = False
 ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com']  
 
-# Static files
-STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-
 AUTH_USER_MODEL = 'rides.User'
 
 
@@ -74,7 +70,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
