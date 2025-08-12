@@ -39,7 +39,7 @@ SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com', 'http://127.0.0.1', '127.0.0.1']  
+ALLOWED_HOSTS = ['www.wingz-rides-api.onrender.com''wingz-rides-api.onrender.com', 'http://127.0.0.1', '127.0.0.1']  
 
 AUTH_USER_MODEL = 'rides.User'
 # In your Django settings.py, make sure you have:
