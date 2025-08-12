@@ -42,7 +42,16 @@ DEBUG = False
 ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com']  
 
 AUTH_USER_MODEL = 'rides.User'
+# In your Django settings.py, make sure you have:
 
+CORS_ALLOW_ALL_ORIGINS = True  # For testing only
+
+# Or specify allowed origins:
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "https://wingz-rides-api.onrender.com/",
+    "https://llenny18.github.io/wingz_rides_api/"
+]
 
 # Application definition
 
