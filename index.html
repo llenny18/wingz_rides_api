@@ -1,0 +1,1024 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Complete Rides Dashboard</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 2px solid #ddd; }
+        .tab { padding: 10px 20px; cursor: pointer; background: #f0f0f0; margin-right: 5px; border-radius: 5px 5px 0 0; }
+        .tab.active { background: #007bff; color: white; }
+        
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        
+        .card { background: white; padding: 15px; margin-bottom: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .row { display: flex; align-items: center; gap: 10px; }
+        .row.small { font-size: 0.9em; }
+        .right { margin-left: auto; }
+        .muted { color: #666; }
+        .pill { background: #e9ecef; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; }
+        .pill.pending { background: #fff3cd; color: #856404; }
+        .pill.active { background: #d4edda; color: #155724; }
+        .pill.completed { background: #d1ecf1; color: #0c5460; }
+        
+        input, select, textarea { padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 100%; }
+        button { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        button.success { background: #28a745; }
+        button.success:hover { background: #218838; }
+        
+        .grid { display: grid; gap: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+        .modal-inner { background: white; padding: 20px; margin: 50px auto; max-width: 600px; border-radius: 8px; max-height: 80vh; overflow-y: auto; }
+        
+        .filters { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .filters .row { flex-wrap: wrap; margin-bottom: 10px; }
+        .filters .row > div { min-width: 200px; flex: 1; }
+        .pagination { display: flex; align-items: center; gap: 10px; margin-top: 15px; }
+        
+        .events { background: #f8f9fa; padding: 10px; border-radius: 4px; margin-top: 8px; }
+        .event-item { margin-bottom: 8px; padding: 5px; background: white; border-radius: 3px; }
+        
+        .error { color: #dc3545; background: #f8d7da; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .success { color: #155724; background: #d4edda; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        
+        .loading { text-align: center; color: #666; padding: 20px; }
+        
+        .filter-section { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        .filter-section h4 { margin-bottom: 10px; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Rides Dashboard</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="showTab('rides')">Rides</div>
+            <div class="tab" onclick="showTab('users')">Users</div>
+            <div class="tab" onclick="showTab('events')">All Events</div>
+        </div>
+
+        <!-- Rides Tab -->
+        <div id="rides-tab" class="tab-content active">
+            <div class="card">
+                <div class="row">
+                    <button onclick="showCreateRideForm()">Create New Ride</button>
+                    <button onclick="refreshRides()">Refresh</button>
+                    <button onclick="clearAllFilters()">Clear All Filters</button>
+                </div>
+            </div>
+
+            <div class="filters">
+                <!-- GPS Position and Distance Sorting -->
+                <div class="filter-section">
+                    <h4>GPS Position & Distance Sorting</h4>
+                    <div class="row">
+                        <div>
+                            <label>Latitude:</label>
+                            <input id="lat" placeholder="e.g. 14.5995" />
+                        </div>
+                        <div>
+                            <label>Longitude:</label>
+                            <input id="lng" placeholder="e.g. 120.9842" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Status and Rider Email Filtering -->
+                <div class="filter-section">
+                    <h4>Filters</h4>
+                    <div class="row">
+                        <div>
+                            <label>Ride Status:</label>
+                            <select id="statusFilter">
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="active">Active</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Rider Email:</label>
+                            <input id="riderEmailFilter" placeholder="Enter rider email" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sorting Options -->
+                <div class="filter-section">
+                    <h4>Sorting</h4>
+                    <div class="row">
+                        <div>
+                            <label>Order by:</label>
+                            <select id="ordering">
+                                <option value="">Default ordering</option>
+                                <option value="distance_to_pickup">Distance to Pickup (asc)</option>
+                                <option value="-distance_to_pickup">Distance to Pickup (desc)</option>
+                                <option value="pickup_time">Pickup Time (earliest first)</option>
+                                <option value="-pickup_time">Pickup Time (latest first)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <button onclick="applyFilters()">Apply Filters</button>
+                    <button onclick="clearAllFilters()">Clear Filters</button>
+                </div>
+            </div>
+
+            <div class="pagination">
+                <label>Page size:</label>
+                <select id="pageSize" onchange="changePageSize()">
+                    <option>10</option>
+                    <option selected>20</option>
+                    <option>50</option>
+                </select>
+                <button id="prevPage" onclick="prevPage()">Previous</button>
+                <span id="pageInfo">Page 1</span>
+                <button id="nextPage" onclick="nextPage()">Next</button>
+            </div>
+
+            <div id="ridesContainer" class="grid"></div>
+        </div>
+
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content">
+            <div class="card">
+                <div class="row">
+                    <button onclick="showCreateUserForm()">Create New User</button>
+                    <button onclick="loadUsers()">Refresh Users</button>
+                </div>
+            </div>
+            <div id="usersContainer" class="grid"></div>
+        </div>
+
+        <!-- Events Tab -->
+        <div id="events-tab" class="tab-content">
+            <div class="card">
+                <button onclick="loadAllRideEvents()">Refresh All Events</button>
+            </div>
+            <div id="allEventsContainer" class="grid"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="rideModal" class="modal">
+        <div class="modal-inner">
+            <div class="row">
+                <h3 id="rideModalTitle">Create/Edit Ride</h3>
+                <button onclick="closeModal('rideModal')" class="right">Close</button>
+            </div>
+            <div id="rideModalContent"></div>
+        </div>
+    </div>
+
+    <div id="userModal" class="modal">
+        <div class="modal-inner">
+            <div class="row">
+                <h3 id="userModalTitle">Create/Edit User</h3>
+                <button onclick="closeModal('userModal')" class="right">Close</button>
+            </div>
+            <div id="userModalContent"></div>
+        </div>
+    </div>
+
+    <div id="eventsModal" class="modal">
+        <div class="modal-inner">
+            <div class="row">
+                <h3 id="eventsModalTitle">Events</h3>
+                <button onclick="closeModal('eventsModal')" class="right">Close</button>
+            </div>
+            <div id="eventsModalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const API_BASE = 'http://127.0.0.1:8000/api/v1';
+        const AUTH_TOKEN = '430f2d56246dc80321c0f274872fde64af6a1493';
+
+        // State
+        let currentPage = 1;
+        let currentPageSize = 20;
+        let currentOrdering = '';
+        let currentLat = '';
+        let currentLng = '';
+        let currentStatusFilter = '';
+        let currentRiderEmailFilter = '';
+        let activeRideId = null;
+        let allUsers = []; // Cache users for ride forms
+
+        // Utility functions
+        function authHeaders() {
+            const headers = {'Content-Type': 'application/json'};
+            if (AUTH_TOKEN) headers['Authorization'] = `Token ${AUTH_TOKEN}`;
+            return headers;
+        }
+
+        function buildQuery(params) {
+            return Object.keys(params)
+                .filter(k => params[k] !== '' && params[k] !== undefined && params[k] !== null)
+                .map(k => encodeURIComponent(k) + '=' + encodeURIComponent(params[k]))
+                .join('&');
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.body.insertBefore(errorDiv, document.body.firstChild);
+            setTimeout(() => errorDiv.remove(), 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.createElement('div');
+            successDiv.className = 'success';
+            successDiv.textContent = message;
+            document.body.insertBefore(successDiv, document.body.firstChild);
+            setTimeout(() => successDiv.remove(), 3000);
+        }
+
+        // Tab management
+        function showTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            if (tabName === 'rides') loadRides();
+            else if (tabName === 'users') loadUsers();
+            else if (tabName === 'events') loadAllRideEvents();
+        }
+
+        // Modal management
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        // Filter management
+        function clearAllFilters() {
+            document.getElementById('lat').value = '';
+            document.getElementById('lng').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('riderEmailFilter').value = '';
+            document.getElementById('ordering').value = '';
+            
+            currentLat = '';
+            currentLng = '';
+            currentStatusFilter = '';
+            currentRiderEmailFilter = '';
+            currentOrdering = '';
+            currentPage = 1;
+            
+            loadRides();
+        }
+
+        // Load users for dropdowns
+        async function loadAllUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/users/?page_size=100`, { headers: authHeaders() });
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const data = await response.json();
+                allUsers = data.results || data;
+                return allUsers;
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                return [];
+            }
+        }
+
+        // ===== RIDES API CALLS =====
+
+        async function loadRides() {
+            currentPageSize = parseInt(document.getElementById('pageSize').value, 10);
+            currentOrdering = document.getElementById('ordering').value;
+            currentLat = document.getElementById('lat').value.trim();
+            currentLng = document.getElementById('lng').value.trim();
+            currentStatusFilter = document.getElementById('statusFilter').value;
+            currentRiderEmailFilter = document.getElementById('riderEmailFilter').value.trim();
+
+            const params = {
+                page: currentPage,
+                page_size: currentPageSize,
+                ordering: currentOrdering || undefined,
+                lat: currentLat || undefined,
+                lng: currentLng || undefined,
+                status: currentStatusFilter || undefined,
+                rider_email: currentRiderEmailFilter || undefined
+            };
+
+            const qs = buildQuery(params);
+            const url = `${API_BASE}/rides/?${qs}`;
+
+            document.getElementById('ridesContainer').innerHTML = '<div class="loading">Loading rides...</div>';
+
+            try {
+                const response = await fetch(url, { headers: authHeaders() });
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const data = await response.json();
+                renderRides(data.results || data);
+                updatePagination(data);
+            } catch (error) {
+                showError(`Failed to load rides: ${error.message}`);
+                document.getElementById('ridesContainer').innerHTML = '<div class="card error">Failed to load rides</div>';
+            }
+        }
+
+        function renderRides(rides) {
+            const container = document.getElementById('ridesContainer');
+            
+            if (!rides || rides.length === 0) {
+                container.innerHTML = '<div class="card">No rides found</div>';
+                return;
+            }
+
+            container.innerHTML = rides.map(ride => `
+                <div class="card">
+                    <div class="row">
+                        <div>
+                            <strong>Ride #${ride.id_ride}</strong>
+                            <span class="pill ${ride.status}">${ride.status}</span>
+                        </div>
+                        <div class="right">
+                            <button onclick="editRide(${ride.id_ride})">Edit</button>
+                            <button onclick="deleteRide(${ride.id_ride})" class="danger">Delete</button>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top: 10px;">
+                        <div class="muted">Pickup: ${ride.pickup_latitude}, ${ride.pickup_longitude}</div>
+                        <div class="muted">Dropoff: ${ride.dropoff_latitude}, ${ride.dropoff_longitude}</div>
+                        <div class="muted">Pickup time: ${ride.pickup_time ? new Date(ride.pickup_time).toLocaleString() : '—'}</div>
+                        <div class="muted">Distance: ${ride.distance_to_pickup ? Number(ride.distance_to_pickup).toFixed(2) + ' km' : '—'}</div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <div><strong>Rider:</strong> ${ride.rider ? `${ride.rider.first_name} ${ride.rider.last_name} (${ride.rider.email})` : '—'}</div>
+                        <div><strong>Driver:</strong> ${ride.driver ? `${ride.driver.first_name} ${ride.driver.last_name} (${ride.driver.email})` : '—'}</div>
+                    </div>
+
+                    <div class="events">
+                        <div class="muted"><strong>Today's events:</strong></div>
+                        <div id="today-events-${ride.id_ride_event}">
+                            ${renderTodaysEvents(ride.todays_ride_events)}
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px;" class="row">
+                        <button onclick="showRideEvents(${ride.id_ride})">All Events</button>
+                        <button onclick="refreshTodaysEvents(${ride.id_ride_event})">Refresh Today's Events</button>
+                        <button onclick="addEventToRide(${ride.id_ride_event})" class="success">Add Event</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function renderTodaysEvents(events) {
+            if (!events || events.length === 0) return '<div class="muted">No events today</div>';
+            return events.map(event => `
+                <div class="event-item">
+                    <strong>${new Date(event.created_at).toLocaleTimeString()}</strong> — ${escapeHtml(event.description)}
+                </div>
+            `).join('');
+        }
+
+        async function createRide(rideData) {
+            try {
+                const response = await fetch(`${API_BASE}/rides/`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(rideData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`${response.status}: ${errorData}`);
+                }
+                
+                showSuccess('Ride created successfully');
+                closeModal('rideModal');
+                loadRides();
+            } catch (error) {
+                showError(`Failed to create ride: ${error.message}`);
+            }
+        }
+
+        async function editRide(rideId) {
+            try {
+                const response = await fetch(`${API_BASE}/rides/${rideId}/`, { headers: authHeaders() });
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const ride = await response.json();
+                showRideForm(ride, true);
+            } catch (error) {
+                showError(`Failed to load ride details: ${error.message}`);
+            }
+        }
+
+        async function updateRide(rideId, rideData) {
+            try {
+                const response = await fetch(`${API_BASE}/rides/${rideId}/`, {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify(rideData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`${response.status}: ${errorData}`);
+                }
+                
+                showSuccess('Ride updated successfully');
+                closeModal('rideModal');
+                loadRides();
+            } catch (error) {
+                showError(`Failed to update ride: ${error.message}`);
+            }
+        }
+
+        async function deleteRide(rideId) {
+            if (!confirm('Are you sure you want to delete this ride?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/rides/${rideId}/`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                showSuccess('Ride deleted successfully');
+                loadRides();
+            } catch (error) {
+                showError(`Failed to delete ride: ${error.message}`);
+            }
+        }
+
+        // ===== RIDE EVENTS API CALLS =====
+
+        async function showRideEvents(rideId) {
+            activeRideId = rideId;
+            document.getElementById('eventsModalTitle').textContent = `Events for Ride #${rideId}`;
+            document.getElementById('eventsModal').style.display = 'block';
+            
+            try {
+                const response = await fetch(`${API_BASE}/rides/${rideId}/events/`, { headers: authHeaders() });
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const data = await response.json();
+                const events = data.results || data;
+                
+                document.getElementById('eventsModalContent').innerHTML = `
+                    <div style="max-height: 300px; overflow-y: auto; margin-bottom: 15px;">
+                        ${events.length ? events.map(event => `
+                            <div class="card">
+                                <div><strong>${new Date(event.created_at).toLocaleString()}</strong></div>
+                                <div>${escapeHtml(event.description)}</div>
+                            </div>
+                        `).join('') : '<div class="muted">No events found</div>'}
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Add New Event:</label>
+                        <div class="row">
+                            <input type="text" id="newEventDesc" placeholder="Event description" style="flex: 1;">
+                            <button onclick="submitNewEvent()" class="success">Add Event</button>
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                showError(`Failed to load events: ${error.message}`);
+            }
+        }
+
+        async function submitNewEvent() {
+            const description = document.getElementById('newEventDesc').value.trim();
+            if (!description) return alert('Please enter event description');
+            
+            try {
+                const response = await fetch(`${API_BASE}/rides/${activeRideId}/add_event/`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify({ description })
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`${response.status}: ${errorData}`);
+                }
+                
+                showSuccess('Event added successfully');
+                document.getElementById('newEventDesc').value = '';
+                showRideEvents(activeRideId);
+                refreshTodaysEvents(activeRideId);
+            } catch (error) {
+                showError(`Failed to add event: ${error.message}`);
+            }
+        }
+
+        async function refreshTodaysEvents(rideId) {
+            try {
+                const response = await fetch(`${API_BASE}/rides/${rideId}/`, { headers: authHeaders() });
+                if (!response.ok) return;
+                
+                const ride = await response.json();
+                const container = document.getElementById(`today-events-${rideId}`);
+                if (container) {
+                    container.innerHTML = renderTodaysEvents(ride.todays_ride_events || []);
+                }
+            } catch (error) {
+                console.warn('Failed to refresh today\'s events:', error);
+            }
+        }
+
+        // ===== USERS API CALLS =====
+
+        async function loadUsers() {
+            document.getElementById('usersContainer').innerHTML = '<div class="loading">Loading users...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/`, { headers: authHeaders() });
+                console.log('Load users response status:', response.status);
+                
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const data = await response.json();
+                console.log('Users data received:', data);
+                
+                const users = data.results || data;
+                console.log('Processing users:', users);
+                
+                renderUsers(users);
+            } catch (error) {
+                console.error('Load users error:', error);
+                showError(`Failed to load users: ${error.message}`);
+                document.getElementById('usersContainer').innerHTML = '<div class="card error">Failed to load users</div>';
+            }
+        }
+
+        function renderUsers(users) {
+            const container = document.getElementById('usersContainer');
+            
+            if (!users || users.length === 0) {
+                container.innerHTML = '<div class="card">No users found</div>';
+                return;
+            }
+
+            container.innerHTML = users.map(user => {
+                // Check for the correct ID field - might be 'id', 'user_id', 'pk', etc.
+                const userId = user.id_user;
+                console.log('User object:', user, 'Using ID:', userId);
+                
+                return `
+                <div class="card">
+                    <div class="row">
+                        <div>
+                            <strong>${user.first_name} ${user.last_name}</strong>
+                            <div class="muted">${user.email}</div>
+                            <div class="muted">Phone: ${user.phone_number || '—'}</div>
+                            <div class="muted">Role: ${user.role || '—'}</div>
+                            <div class="muted">ID: ${userId}</div>
+                        </div>
+                        <div class="right">
+                            <button onclick="editUser(${userId})">Edit</button>
+                            <button onclick="deleteUser(${userId})" class="danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function createUser(userData) {
+            try {
+                const response = await fetch(`${API_BASE}/users/`, {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(userData)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`${response.status}: ${errorData}`);
+                }
+                
+                showSuccess('User created successfully');
+                closeModal('userModal');
+                loadUsers();
+                loadAllUsers(); // Refresh user cache
+            } catch (error) {
+                showError(`Failed to create user: ${error.message}`);
+            }
+        }
+
+        async function editUser(userId) {
+            console.log('Editing user with ID:', userId);
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}/`, { headers: authHeaders() });
+                console.log('Edit user response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Edit user error response:', errorText);
+                    throw new Error(`${response.status}: ${errorText}`);
+                }
+                
+                const user = await response.json();
+                console.log('User data loaded for editing:', user);
+                showUserForm(user, true);
+            } catch (error) {
+                console.error('Edit user error:', error);
+                showError(`Failed to load user details: ${error.message}`);
+            }
+        }
+
+        async function updateUser(userId, userData) {
+            console.log('Updating user ID:', userId, 'with data:', userData);
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}/`, {
+                    method: 'PUT',
+                    headers: authHeaders(),
+                    body: JSON.stringify(userData)
+                });
+                
+                console.log('Update user response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    console.log('Update user error response:', errorData);
+                    throw new Error(`${response.status}: ${errorData}`);
+                }
+                
+                showSuccess('User updated successfully');
+                closeModal('userModal');
+                loadUsers();
+                loadAllUsers(); // Refresh user cache
+            } catch (error) {
+                console.error('Update user error:', error);
+                showError(`Failed to update user: ${error.message}`);
+            }
+        }
+
+        async function deleteUser(userId) {
+            console.log('Attempting to delete user ID:', userId);
+            if (!confirm('Are you sure you want to delete this user?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/users/${userId}/`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                
+                console.log('Delete user response status:', response.status);
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.log('Delete user error response:', errorText);
+                    throw new Error(`${response.status}: ${errorText}`);
+                }
+                
+                showSuccess('User deleted successfully');
+                loadUsers();
+                loadAllUsers(); // Refresh user cache
+            } catch (error) {
+                console.error('Delete user error:', error);
+                showError(`Failed to delete user: ${error.message}`);
+            }
+        }
+
+        // ===== ALL RIDE EVENTS API CALLS =====
+
+        async function loadAllRideEvents() {
+            document.getElementById('allEventsContainer').innerHTML = '<div class="loading">Loading events...</div>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/ride-events/`, { headers: authHeaders() });
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                const data = await response.json();
+                renderAllEvents(data.results || data);
+            } catch (error) {
+                showError(`Failed to load events: ${error.message}`);
+                document.getElementById('allEventsContainer').innerHTML = '<div class="card error">Failed to load events</div>';
+            }
+        }
+
+        function renderAllEvents(events) {
+            const container = document.getElementById('allEventsContainer');
+            
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="card">No events found</div>';
+                return;
+            }
+
+            container.innerHTML = events.map(event => `
+                <div class="card">
+                    <div class="row">
+                        <div>
+                            <strong>Ride #${event.id_ride_event}</strong>
+                            <div class="muted">${new Date(event.created_at).toLocaleString()}</div>
+                            <div>${escapeHtml(event.description)}</div>
+                        </div>
+                        <div class="right">
+                            <button onclick="deleteEvent(${event.id_ride_event})" class="danger">Delete</button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function deleteEvent(eventId) {
+            if (!confirm('Are you sure you want to delete this event?')) return;
+            
+            try {
+                const response = await fetch(`${API_BASE}/ride-events/${eventId}/`, {
+                    method: 'DELETE',
+                    headers: authHeaders()
+                });
+                
+                if (!response.ok) throw new Error(`${response.status}: ${response.statusText}`);
+                
+                showSuccess('Event deleted successfully');
+                loadAllRideEvents();
+            } catch (error) {
+                showError(`Failed to delete event: ${error.message}`);
+            }
+        }
+
+        // ===== FORM FUNCTIONS =====
+
+        async function showCreateRideForm() {
+            await loadAllUsers(); // Ensure users are loaded
+            showRideForm(null, false);
+        }
+
+        async function showRideForm(ride, isEdit) {
+            // Ensure users are loaded for the dropdown
+            if (allUsers.length === 0) await loadAllUsers();
+            
+            document.getElementById('rideModalTitle').textContent = isEdit ? 'Edit Ride' : 'Create New Ride';
+            document.getElementById('rideModal').style.display = 'block';
+            
+            const userOptions = allUsers.map(user => 
+                `<option value="${user.id_user}" ${ride && ((ride.id_rider === user.id) || (ride.id_driver === user.id)) ? 'selected' : ''}>
+                    ${user.first_name} ${user.last_name} (${user.email})
+                </option>`
+            ).join('');
+            
+            document.getElementById('rideModalContent').innerHTML = `
+                <form onsubmit="handleRideSubmit(event, ${isEdit}, ${ride ? ride.id_ride : null})">
+                    <div class="form-group">
+                        <label>Pickup Latitude:</label>
+                        <input type="number" step="any" name="pickup_latitude" value="${ride ? ride.pickup_latitude : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pickup Longitude:</label>
+                        <input type="number" step="any" name="pickup_longitude" value="${ride ? ride.pickup_longitude : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Dropoff Latitude:</label>
+                        <input type="number" step="any" name="dropoff_latitude" value="${ride ? ride.dropoff_latitude : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Dropoff Longitude:</label>
+                        <input type="number" step="any" name="dropoff_longitude" value="${ride ? ride.dropoff_longitude : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Pickup Time:</label>
+                        <input type="datetime-local" name="pickup_time" value="${ride && ride.pickup_time ? new Date(ride.pickup_time).toISOString().slice(0, 16) : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Status:</label>
+                        <select name="status">
+                            <option value="pending" ${ride && ride.status === 'pending' ? 'selected' : ''}>Pending</option>
+                            <option value="active" ${ride && ride.status === 'active' ? 'selected' : ''}>Active</option>
+                            <option value="completed" ${ride && ride.status === 'completed' ? 'selected' : ''}>Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Rider:</label>
+                        <select name="id_rider">
+                            <option value="">Select a rider</option>
+                            ${userOptions}
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Driver:</label>
+                        <select name="id_driver">
+                            <option value="">Select a driver</option>
+                            ${userOptions}
+                        </select>
+                    </div>
+                    <button type="submit" class="success">${isEdit ? 'Update' : 'Create'} Ride</button>
+                </form>
+            `;
+        }
+
+        function showCreateUserForm() {
+            showUserForm(null, false);
+        }
+
+        function showUserForm(user, isEdit) {
+            document.getElementById('userModalTitle').textContent = isEdit ? 'Edit User' : 'Create New User';
+            document.getElementById('userModal').style.display = 'block';
+            
+            document.getElementById('userModalContent').innerHTML = `
+                <form onsubmit="handleUserSubmit(event, ${isEdit}, ${user ? user.id_user : null})">
+                    <div class="form-group">
+                        <label>First Name:</label>
+                        <input type="text" name="first_name" value="${user ? user.first_name : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name:</label>
+                        <input type="text" name="last_name" value="${user ? user.last_name : ''}" required>
+                    </div>
+					
+                    <div class="form-group">
+                        <label>Username:</label>
+                        <input type="text" name="username" value="${user ? user.username : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email:</label>
+                        <input type="email" name="email" value="${user ? user.email : ''}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Phone Number:</label>
+                        <input type="text" name="phone_number" value="${user ? user.phone_number || '' : ''}">
+                    </div>
+                    <div class="form-group">
+                        <label>Role:</label>
+                        <select name="role">
+                            <option value="">Select role</option>
+                            <option value="rider" ${user && user.role === 'rider' ? 'selected' : ''}>Rider</option>
+                            <option value="driver" ${user && user.role === 'driver' ? 'selected' : ''}>Driver</option>
+                            <option value="admin" ${user && user.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        </select>
+                    </div>
+                    ${!isEdit ? `
+                    <div class="form-group">
+                        <label>Password:</label>
+                        <input type="password" name="password" required>
+                    </div>
+                    ` : ''}
+                    <button type="submit" class="success">${isEdit ? 'Update' : 'Create'} User</button>
+                </form>
+            `;
+        }
+
+        function handleRideSubmit(event, isEdit, rideId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const rideData = Object.fromEntries(formData);
+            
+            // Convert numeric fields
+            rideData.pickup_latitude = parseFloat(rideData.pickup_latitude);
+            rideData.pickup_longitude = parseFloat(rideData.pickup_longitude);
+            rideData.dropoff_latitude = parseFloat(rideData.dropoff_latitude);
+            rideData.dropoff_longitude = parseFloat(rideData.dropoff_longitude);
+            
+            // Convert user IDs to integers or null
+            rideData.id_rider = rideData.id_rider ? parseInt(rideData.id_rider) : null;
+            rideData.id_driver = rideData.id_driver ? parseInt(rideData.id_driver) : null;
+            
+            // Handle empty pickup_time
+            if (!rideData.pickup_time) {
+                rideData.pickup_time = null;
+            }
+            
+            // Remove empty values for optional fields
+            Object.keys(rideData).forEach(key => {
+                if (rideData[key] === '' || rideData[key] === 'undefined') {
+                    rideData[key] = null;
+                }
+            });
+            
+            console.log('Submitting ride data:', rideData);
+            
+            if (isEdit) {
+                updateRide(rideId, rideData);
+            } else {
+                createRide(rideData);
+            }
+        }
+
+        function handleUserSubmit(event, isEdit, userId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const userData = Object.fromEntries(formData);
+            
+            // Remove empty values
+            Object.keys(userData).forEach(key => {
+                if (userData[key] === '') {
+                    if (key === 'phone_number' || key === 'role') {
+                        userData[key] = null;
+                    } else if (key === 'password' && isEdit) {
+                        delete userData[key]; // Don't send empty password on edit
+                    }
+                }
+            });
+            
+            console.log('Submitting user data:', userData);
+            
+            if (isEdit) {
+                updateUser(userId, userData);
+            } else {
+                createUser(userData);
+            }
+        }
+
+        // ===== PAGINATION FUNCTIONS =====
+
+        function updatePagination(data) {
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} • ${data.count || 0} total`;
+            document.getElementById('prevPage').disabled = !data.previous;
+            document.getElementById('nextPage').disabled = !data.next;
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                loadRides();
+            }
+        }
+
+        function nextPage() {
+            currentPage++;
+            loadRides();
+        }
+
+        function changePageSize() {
+            currentPage = 1;
+            loadRides();
+        }
+
+        function applyFilters() {
+            currentPage = 1;
+            loadRides();
+        }
+
+        function refreshRides() {
+            loadRides();
+        }
+
+        function addEventToRide(rideId) {
+            const description = prompt('Enter event description:');
+            if (!description) return;
+            
+            fetch(`${API_BASE}/rides/${rideId}/add_event/`, {
+                method: 'POST',
+                headers: authHeaders(),
+                body: JSON.stringify({ description })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.text().then(errorText => {
+                        throw new Error(`${response.status}: ${errorText}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(() => {
+                showSuccess('Event added successfully');
+                refreshTodaysEvents(rideId);
+            })
+            .catch(error => {
+                showError(`Failed to add event: ${error.message}`);
+            });
+        }
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            loadRides();
+            loadAllUsers(); // Load users for ride forms
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
