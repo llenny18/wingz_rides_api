@@ -39,7 +39,7 @@ SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
-ALLOWED_HOSTS = ['*']  # Allow all, Vercel handles domain
+ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com']  
 
 # Static files
 STATIC_URL = '/static/'
