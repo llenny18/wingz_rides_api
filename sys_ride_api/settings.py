@@ -38,11 +38,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ['www.wingz-rides-api.onrender.com','wingz-rides-api.onrender.com', 'http://127.0.0.1', '127.0.0.1']  
 
 AUTH_USER_MODEL = 'rides.User'
-# In your Django settings.py, make sure you have:
 
 CORS_ALLOW_ALL_ORIGINS = True  # For testing only
 
@@ -81,7 +80,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
 # REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
