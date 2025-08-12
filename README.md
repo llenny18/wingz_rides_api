@@ -24,6 +24,36 @@ PUT    /api/v1/ride-events/{id}/          # Update event
 DELETE /api/v1/ride-events/{id}/          # Delete event
 ```
 
+## SQL Problem Solution
+
+```
+SELECT 
+    DATE_FORMAT(pickup.created_at, '%Y-%m') AS Month,
+    CONCAT(driver.first_name, ' ', LEFT(driver.last_name, 1)) AS Driver,
+    COUNT(*) AS `Count of Trips > 1 hr`
+FROM 
+    ride_event AS pickup
+JOIN 
+    ride_event AS dropoff 
+    ON pickup.id_ride = dropoff.id_ride 
+    AND pickup.description = 'Status changed to pickup' 
+    AND dropoff.description = 'Status changed to dropoff'
+JOIN 
+    ride 
+    ON ride.id_ride = pickup.id_ride
+JOIN 
+    user AS driver 
+    ON ride.id_driver = driver.id_user
+WHERE 
+    TIMESTAMPDIFF(HOUR, pickup.created_at, dropoff.created_at) > 1
+GROUP BY 
+    DATE_FORMAT(pickup.created_at, '%Y-%m'), 
+    Driver
+ORDER BY 
+    Month, 
+    Driver;
+```
+
 ## Table of Contents
 
 - [Features](#features)
