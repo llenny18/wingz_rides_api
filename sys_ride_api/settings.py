@@ -38,8 +38,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com']  
+DEBUG = True
+ALLOWED_HOSTS = ['https://wingz-rides-api.onrender.com', 'http://127.0.0.1', '127.0.0.1']  
 
 AUTH_USER_MODEL = 'rides.User'
 # In your Django settings.py, make sure you have:
@@ -48,9 +48,9 @@ CORS_ALLOW_ALL_ORIGINS = True  # For testing only
 
 # Or specify allowed origins:
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "https://wingz-rides-api.onrender.com/",
-    "https://llenny18.github.io/wingz_rides_api/"
+    "http://127.0.0.1",
+    "https://wingz-rides-api.onrender.com",
+    "https://llenny18.github.io"
 ]
 
 # Application definition
