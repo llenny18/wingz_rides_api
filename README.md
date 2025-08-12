@@ -94,7 +94,7 @@ ORDER BY
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│     Frontend    │    │   Django REST   │    │   PostgreSQL    │
+│     Frontend    │    │   Django REST   │    │      MySQL      │
 │   (Any Client)  │◄──►│      API        │◄──►│    Database     │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
                               │
@@ -113,15 +113,15 @@ ORDER BY
 
 ### Prerequisites
 - Python 3.8+
-- PostgreSQL 12+
+- MySQL 12+
 - pip/pipenv
 
 ### Installation
 
 1. **Clone the repository**
 ```bash
-git clone <repository-url>
-cd ride-management-system
+git clone https://github.com/llenny18/wingz_rides_api
+cd wingz_rides_api
 ```
 
 2. **Install dependencies**
@@ -134,10 +134,7 @@ pip install -r requirements.txt
 # Create .env file
 cp .env.example .env
 
-# Edit .env with your database credentials
-DATABASE_URL=postgresql://user:password@localhost:5432/ride_management
-SECRET_KEY=your-secret-key-here
-DEBUG=True
+
 ```
 
 4. **Database setup**
@@ -263,7 +260,7 @@ GET /api/v1/rides/?page=2
 ### Database Level
 - **Strategic Indexes**: Optimized for common query patterns
 - **Composite Indexes**: Multi-field queries (rider + status, driver + status)
-- **Partial Indexes**: PostgreSQL-specific optimizations for recent events
+- **Partial Indexes**: MySQL-specific optimizations for recent events
 - **Foreign Key Optimization**: Proper relationship indexing
 
 ### Django ORM Level
@@ -335,13 +332,6 @@ CREATE TABLE ride_event (
 Create a `.env` file in your project root:
 
 ```bash
-# Database
-DATABASE_URL=postgresql://user:password@localhost:5432/ride_management
-
-# Django
-SECRET_KEY=your-very-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1,your-domain.com
 
 # API Configuration
 API_PAGE_SIZE=20
@@ -357,7 +347,7 @@ Key settings in `settings.py`:
 
 ```python
 # Custom User Model
-AUTH_USER_MODEL = 'your_app.User'
+AUTH_USER_MODEL = 'rides.User'
 
 # REST Framework
 REST_FRAMEWORK = {
@@ -371,17 +361,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'ride_management',
-        'USER': 'your_user',
-        'PASSWORD': 'your_password',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
-}
+
 ```
 
 ## Development
@@ -434,7 +414,7 @@ python manage.py loaddata sample_data.json
 
 # Or create sample data via Django shell
 python manage.py shell
->>> from your_app.models import User, Ride
+>>> from rides.models import User, Ride
 >>> # Create sample data here
 ```
 
@@ -452,15 +432,13 @@ RUN pip install -r requirements.txt
 COPY . .
 
 EXPOSE 8000
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "your_project.wsgi:application"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "sys_ride_api.wsgi:application"]
 ```
 
 ### Environment Setup
 ```bash
 # Production environment variables
 DEBUG=False
-ALLOWED_HOSTS=your-domain.com
-DATABASE_URL=postgresql://user:pass@db-host:5432/ride_management
 
 # Security settings
 SECURE_SSL_REDIRECT=True
@@ -470,16 +448,6 @@ SECURE_HSTS_INCLUDE_SUBDOMAINS=True
 
 ### Performance Tuning
 ```python
-# Additional production settings
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'OPTIONS': {
-            'MAX_CONNS': 20,
-            'conn_max_age': 600,
-        }
-    }
-}
 
 # Caching
 CACHES = {
