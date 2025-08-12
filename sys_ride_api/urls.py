@@ -15,3 +15,4 @@ urlpatterns = [
     path('api/v1/auth/token/', obtain_auth_token, name='api_token_auth'),
     
 ]
+ 
